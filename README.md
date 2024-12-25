@@ -8,7 +8,7 @@ Partial re-implementation of paper [Timely Communication from Sensors for Wirele
 Implement a system where we have a primary agent (PA) which includes n features of the system.
 Additionally, there are m sensor agents which send the data to the server to estimate the state of the system.
 At the server, we use Extended Kalman Filter to estimate the status of the sytem then make a new decision to control the system (motor, robot, etc).
-The paper and this project aim to use Reinforcement Learning and proposed an algorithm to select a particular number of sensor to receive the data
+The paper and this project aim to use Reinforcement Learning and proposed an algorithm to select a particular number of sensor to update the data
 to reduce the bandwitch consumption, energy consumption of the whole system.
 
 1. Every query interval, the digital twin/cloud/server/edge intelligence (or anything you call it) consider the Age of Loop and Variance of each features in the system.
@@ -18,8 +18,9 @@ to reduce the bandwitch consumption, energy consumption of the whole system.
    Suppose that the information of the sensors are not trustworthy and have difference accuracy.
 4. To make the decision, Proximal policy optimization (PPO) was used to train the system and give the control decision.
 
-> **NOTE**: Mountain-Car-Continuous-v0 environment (gymnasium) was used to represent the system where the car have to choose the right velocity to reach the destination.
+> Mountain-Car-Continuous-v0 environment (gymnasium) was used to represent the system where the car have to choose the right velocity to reach the destination.
 You can gain more information on [Gymnasisum's webpage](https://gymnasium.farama.org/)
+
 > Temporarily, I skip Age of Loop and Resource Allocation consideration. You can see the code for AoL in this repo, however, you can found that I set the AoL of all features equal to 0 all the time.
 
 ### Algorithm
