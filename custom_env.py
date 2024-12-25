@@ -1,5 +1,6 @@
 import gymnasium as gym
 import numpy as np
+import random
 import matplotlib.pyplot as plt
 from gymnasium.spaces import Box
 from stable_baselines3 import PPO
@@ -12,11 +13,11 @@ from generate_sensors import SensorSimulator
 m = 20  # Number of sensors
 max_m = 10
 d_mean = 10  # Mean of sensor distance distribution
-d_std = 2  # Standard deviation of sensor distance distribution
+d_std = 3  # Standard deviation of sensor distance distribution
 
 # Mean and standard deviation for generating scalar measurement noise covariances
-cov_mean = 1e-4
-cov_std = 2e-4
+cov_mean = 1e-8
+cov_std = 2e-8
 state_0_prob = 0.6
 
 # Kalman filter parameters
@@ -28,12 +29,14 @@ Qs = []  # Sensor Agents (Index of sensors)
 H = np.array([[1, 0], [0, 1]])
 Ps = np.arange(m)
 
-# Age of loop threshold
+# Age of loop of system
 L = np.array([0, 0])
 
 # ---------------------CAN BE CHANGED-------------------
+# Age of loop threshold
 delta_L = np.array([5, 5])
 xi = np.array([0.01, 0.002])
+fail_probability = 0.005
 
 def hx(state, H):
     Ht = np.array(H)
@@ -90,13 +93,14 @@ class CustomRewardWrapper(gym.RewardWrapper):
         super().__init__(env)
         self.true_state = None  # Store the true state internally
         self.last_action = None
+        self.aol_car = None
         self.ekf = init(H, x, Q, R, P)
         self.SA_simulator = SensorSimulator(m, d_mean, d_std, Q, cov_mean, cov_std, state_0_prob)
         # Extend action space to include sensor parameters
         self.action_space = Box(
             low=np.array([-1.0, np.log10(100), np.log10(500)]),  # Logarithmic scale
             high=np.array([1.0, np.log10(1e20), np.log10(1e20)]),
-            dtype=np.float32,
+            dtype=np.float64,
         )
 
     def step(self, action):
@@ -108,8 +112,8 @@ class CustomRewardWrapper(gym.RewardWrapper):
 
         # Estimate the state based on the action's accuracy levels
         # estimated_state = EKF_exclude(np.copy(true_state), action[1:])
-        estimated_state, Qs = state_estimation_function(np.copy(true_state), action[1:], self.ekf, self.SA_simulator)
-
+        estimated_state, Qs, aol_car = state_estimation_function(np.copy(true_state), action[1:], self.ekf, self.SA_simulator, self.aol_car)
+        self.aol_car = aol_car
         # Return the estimated state to the agent
         return estimated_state, self.reward(original_reward), terminated, truncated, info, Qs
 
@@ -124,7 +128,7 @@ class CustomRewardWrapper(gym.RewardWrapper):
         # Transform the reward based on the last state and action
         return reward_transform(reward, self.true_state, self.last_action)
 
-def state_estimation_function(states, eta, ekf, SA_simulator):
+def state_estimation_function(states, eta, ekf, SA_simulator, aol_car):
     global Ps, H, Qs, R, L
     eta = 10**eta
     Qs = [] # Sensor Agents (Index of sensors)
@@ -138,10 +142,11 @@ def state_estimation_function(states, eta, ekf, SA_simulator):
     x_pr = ekf.x
 
     H = [] # Measurement matix
+    AoL_check = False
 
     # Check the Age of Loop of the features in state
     for i in range (len(ekf.x)):
-        if L[i] > delta_L[i] and len(Qs) < max_m:
+        if aol_car != None and L[i] > delta_L[i] and len(Qs) < max_m:
             # Filter indices where the observed state equals i
             indices = [idx for idx, state in enumerate(SA_simulator.observed_states) if state == i]
             # Intersection with Ps, create new min_index
@@ -152,18 +157,23 @@ def state_estimation_function(states, eta, ekf, SA_simulator):
                 min_index = min(valid_indices, key=lambda idx: SA_simulator.distances[idx])
                 print(f"Sensor with shortest distance observing state {i} is at index {min_index} with distance {SA_simulator.distances[min_index]}")
 
-                if i == 0:
-                    H.append([1, 0])
+                if random.random() > fail_probability:
+                    AoL_check = True
+                    if i == 0:
+                        H.append([1, 0])
+                    else:
+                        H.append([0, 1])
+                    ekf.H = np.array(H)  # Correct assignment to ekf.H
+
+                    # Remove that sensor from available list
+                    Ps = Ps[Ps != min_index]
+
+                    # Update list of sensors
+                    Qs.append(min_index)
+                    ekf.R = np.diag(SA_simulator.SA_cov_list[Qs])
+
                 else:
-                    H.append([0, 1])
-                ekf.H = np.array(H)  # Correct assignment to ekf.H
-
-                # Remove that sensor from available list
-                Ps = Ps[Ps != min_index]
-
-                # Update list of sensors
-                Qs.append(min_index)
-                ekf.R = np.diag(SA_simulator.SA_cov_list[Qs])
+                    print('The sensor fail to update the data')
             else:
                 print(f"No sensors observe state {i}.")
 
@@ -172,7 +182,23 @@ def state_estimation_function(states, eta, ekf, SA_simulator):
     while any(ekf.P[i, i] > np.minimum(xi[i], 1/eta[i]) for i in range(len(ekf.x))) and len(Qs) < max_m and stop != [1, 1]:
         if ekf.P[0,0] <= np.minimum(xi[0], 1/eta[0]) and ekf.P[1,1] <= np.minimum(xi[1], 1/eta[1]):
             print("The requirements of covariance are fullfil!")
-            break
+            if AoL_check:
+                # Update the estimation
+                sensor_values = SA_simulator.generate_sensor_values(states)
+                # ekf.update([sensor_values[i] for i in Qs], HJacobian=jacobian_hx, args=(H), Hx=hx, hx_args=(H)) # Update the EKF with the new sensor data
+                ekf.P = P_pr
+                ekf.x = x_pr
+                ekf.update(
+                    np.array([sensor_values[i] for i in Qs]),  # Make sure z is a NumPy array
+                    HJacobian=jacobian_hx,
+                    args=(H,),  # Correct the tuple syntax here with a comma
+                    Hx=hx,
+                    hx_args=(H,)
+                )
+                print(f'The Update of x {ekf.x}')
+
+
+            return ekf.x, Qs
         for i in range(len(ekf.x)):
             if ekf.P[i, i] > np.minimum(xi[i], 1/eta[i]):
                 # Get indices of sensors that collect data for state i
@@ -187,34 +213,39 @@ def state_estimation_function(states, eta, ekf, SA_simulator):
                     print(f"Sensor observing state {i} with smallest covariance is at index {min_index}")
                     print(f"Covariance: {SA_simulator.SA_cov_list[min_index]}")
 
-                    # Update measurements matrix (H)
-                    if i == 0:
-                        H.append([1, 0])
+                    # Check if the sensor fail to send the data with probability 1%
+                    if random.random() > fail_probability:
+                        # Update measurements matrix (H)
+                        if i == 0:
+                            H.append([1, 0])
+                        else:
+                            H.append([0, 1])
+                        ekf.H = np.array(H)
+
+                        # Remove that sensor from available list
+                        #Ps.remove(min_index)
+                        Ps = Ps[Ps != min_index]
+
+                        # Update list of sensors
+                        Qs.append(min_index)
+                        ekf.R = np.diag([SA_simulator.SA_cov_list[q] for q in Qs])
+
+                        # Update the estimation
+                        sensor_values = SA_simulator.generate_sensor_values(states)
+
+                        #ekf.update([sensor_values[i] for i in Qs], HJacobian=jacobian_hx, args=(H), Hx=hx, hx_args=(H)) # Update the EKF with the new sensor data
+                        ekf.P = P_pr
+                        ekf.x = x_pr
+                        ekf.update(
+                            np.array([sensor_values[i] for i in Qs]),  # Make sure z is a NumPy array
+                            HJacobian=jacobian_hx,
+                            args=(H,),  # Correct the tuple syntax here with a comma
+                            Hx=hx,
+                            hx_args=(H,)
+                        )
+                        print(f'The Update of x {ekf.x}')
                     else:
-                        H.append([0, 1])
-                    ekf.H = np.array(H)
-
-                    # Remove that sensor from available list
-                    #Ps.remove(min_index)
-                    Ps = Ps[Ps != min_index]
-
-                    # Update list of sensors
-                    Qs.append(min_index)
-                    ekf.R = np.diag([SA_simulator.SA_cov_list[q] for q in Qs])
-
-                    # Update the estimation
-                    sensor_values = SA_simulator.generate_sensor_values(states)
-                    #ekf.update([sensor_values[i] for i in Qs], HJacobian=jacobian_hx, args=(H), Hx=hx, hx_args=(H)) # Update the EKF with the new sensor data
-                    ekf.P = P_pr
-                    ekf.x = x_pr
-                    ekf.update(
-                        np.array([sensor_values[i] for i in Qs]),  # Make sure z is a NumPy array
-                        HJacobian=jacobian_hx,
-                        args=(H,),  # Correct the tuple syntax here with a comma
-                        Hx=hx,
-                        hx_args=(H,)
-                    )
-                    print(f'The Update of x {ekf.x}')
+                        print('The sensor fail to update the data')
                 else:
                     print(f"No sensors are observing state {i}.")
                     stop[i] = 1
@@ -222,6 +253,6 @@ def state_estimation_function(states, eta, ekf, SA_simulator):
                 stop[i] = 1
 
         if all(stop):
-            break
+            return ekf.x, Qs
 
-    return ekf.x, Qs
+    return ekf.x, Qs, aol_car

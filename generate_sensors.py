@@ -19,6 +19,12 @@ class SensorSimulator:
         # Randomly assign sensors to observe state 0 or state 1
         self.observed_states = self._assign_observed_states(state_0_prob)
 
+        # Generate randomly the AoL
+        self.aol = self._generate_aol()
+
+    def _generate_aol(self,):
+        return 2 * self.distances / (self.d_mean / 2) + 0.1
+
     def _generate_scalar_covariances(self):
         covariances = np.random.normal(loc=self.cov_mean, scale=self.cov_std, size=self.m)
         return np.abs(covariances)
