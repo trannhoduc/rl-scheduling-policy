@@ -20,13 +20,17 @@ to reduce the bandwitch consumption, energy consumption of the whole system.
 
 > **NOTE**: Mountain-Car-Continuous-v0 environment (gymnasium) was used to represent the system where the car have to choose the right velocity to reach the destination.
 You can gain more information on [Gymnasisum's webpage](https://gymnasium.farama.org/)
+> Temporarily, I skip Age of Loop and Resource Allocation consideration. You can see the code for AoL in this repo, however, you can found that I set the AoL of all features equal to 0 all the time.
 
 ### Algorithm
 The process that the server consider Age of Loop (Information freshness) and Variance (Accuracy) to make the new scheduling policy is described as below:
 
+<div align="center">
 <img width="541" alt="image" src="https://github.com/user-attachments/assets/dc62d4bb-168e-4699-a89c-934aa4bb8a7b" />
+</div>
 
-> **NOTE**: Please the original paper for more information.
+
+> **NOTE**: Please read the original paper for more information.
 
 ### What is included in this project 
 
@@ -68,6 +72,6 @@ python main.py
 python visualize.py
 ```
 
-> **NOTE**: The result might not be the same with the original paper duo the the pre-trained model.
+> **NOTE**: The result might not be the same with the original paper due the the pre-trained model.
 
 Thank you for your visiting !
