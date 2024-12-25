@@ -46,8 +46,8 @@ The process that the server consider Age of Loop (Information freshness) and Var
 - 📊 A code to generate visualization, not too much things here, it might be updated later. *(visualize.py)*
   `Containerfile` is a more open standard for building container images than Dockerfile, you can use buildah or docker with this file.
 - 🧪 A sample result which was generated before *(parameters.json)*
-- 📃 Requirements file for essential packages. Indeed, I generate by put all of packages in my virtual env in it, thus, there might be some redundant packages.
-  However, it not too many, so do not worry about using it.
+- 📃 Requirements file for essential packages. Indeed, I generated it by put all of packages in my virtual env in it, thus, there might be some redundant packages.
+  However, it not too many, so do not worry about using it. *(requirements.txt)*
 - 🤖 Finally, the main function where we simulate the model and make the car run its journey. *(main.py)*
 
 > My contact: nhoduc.tran@miun.se
