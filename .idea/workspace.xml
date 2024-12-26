@@ -4,11 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="626f2cd9-45a5-45de-9570-a3e4615addb4" name="Changes" comment="Add the requirements file">
+    <list default="true" id="626f2cd9-45a5-45de-9570-a3e4615addb4" name="Changes" comment="Add packet loss property">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/custom_env.py" beforeDir="false" afterPath="$PROJECT_DIR$/custom_env.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/generate_sensors.py" beforeDir="false" afterPath="$PROJECT_DIR$/generate_sensors.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parameters.json" beforeDir="false" afterPath="$PROJECT_DIR$/parameters.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/visualize.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualize.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -108,7 +109,15 @@
       <option name="project" value="LOCAL" />
       <updated>1735133522844</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Add packet loss property">
+      <option name="closed" value="true" />
+      <created>1735145976482</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1735145976482</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -125,6 +134,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="First commit" />
     <MESSAGE value="Add the requirements file" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add the requirements file" />
+    <MESSAGE value="Add packet loss property" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add packet loss property" />
   </component>
 </project>

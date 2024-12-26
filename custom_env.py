@@ -93,7 +93,7 @@ class CustomRewardWrapper(gym.RewardWrapper):
         super().__init__(env)
         self.true_state = None  # Store the true state internally
         self.last_action = None
-        self.aol_car = None
+        self.aol_car = L
         self.ekf = init(H, x, Q, R, P)
         self.SA_simulator = SensorSimulator(m, d_mean, d_std, Q, cov_mean, cov_std, state_0_prob)
         # Extend action space to include sensor parameters
@@ -112,10 +112,10 @@ class CustomRewardWrapper(gym.RewardWrapper):
 
         # Estimate the state based on the action's accuracy levels
         # estimated_state = EKF_exclude(np.copy(true_state), action[1:])
-        estimated_state, Qs, aol_car = state_estimation_function(np.copy(true_state), action[1:], self.ekf, self.SA_simulator, self.aol_car)
+        estimated_state, covariance, Qs, aol_car = state_estimation_function(np.copy(true_state), action[1:], self.ekf, self.SA_simulator, self.aol_car)
         self.aol_car = aol_car
         # Return the estimated state to the agent
-        return estimated_state, self.reward(original_reward), terminated, truncated, info, Qs
+        return estimated_state, self.reward(original_reward), terminated, truncated, info, Qs, covariance
 
     def reset(self, **kwargs):
         # Reset the environment and retrieve the true state
@@ -129,7 +129,7 @@ class CustomRewardWrapper(gym.RewardWrapper):
         return reward_transform(reward, self.true_state, self.last_action)
 
 def state_estimation_function(states, eta, ekf, SA_simulator, aol_car):
-    global Ps, H, Qs, R, L
+    global Ps, H, Qs, R
     eta = 10**eta
     Qs = [] # Sensor Agents (Index of sensors)
     Ps = np.arange(m)
@@ -146,7 +146,7 @@ def state_estimation_function(states, eta, ekf, SA_simulator, aol_car):
 
     # Check the Age of Loop of the features in state
     for i in range (len(ekf.x)):
-        if aol_car != None and L[i] > delta_L[i] and len(Qs) < max_m:
+        if aol_car[i] > delta_L[i] and len(Qs) < max_m:
             # Filter indices where the observed state equals i
             indices = [idx for idx, state in enumerate(SA_simulator.observed_states) if state == i]
             # Intersection with Ps, create new min_index
@@ -197,8 +197,12 @@ def state_estimation_function(states, eta, ekf, SA_simulator, aol_car):
                 )
                 print(f'The Update of x {ekf.x}')
 
+                # Update Age of Loop
+                for i in range(2):
+                    valid_indices = [idx for idx in Qs if SA_simulator.observed_states[idx] == i]
+                    aol_car[i] = min(SA_simulator.aol[idx] for idx in valid_indices)
 
-            return ekf.x, Qs
+            return ekf.x, ekf.P, Qs, aol_car
         for i in range(len(ekf.x)):
             if ekf.P[i, i] > np.minimum(xi[i], 1/eta[i]):
                 # Get indices of sensors that collect data for state i
@@ -244,6 +248,13 @@ def state_estimation_function(states, eta, ekf, SA_simulator, aol_car):
                             hx_args=(H,)
                         )
                         print(f'The Update of x {ekf.x}')
+
+                        # Update Age of Loop
+                        for i in range(2):
+                            valid_indices = [idx for idx in Qs if SA_simulator.observed_states[idx] == i]
+                            if valid_indices:
+                                aol_car[i] = min(SA_simulator.aol[idx] for idx in valid_indices)
+
                     else:
                         print('The sensor fail to update the data')
                 else:
@@ -253,6 +264,6 @@ def state_estimation_function(states, eta, ekf, SA_simulator, aol_car):
                 stop[i] = 1
 
         if all(stop):
-            return ekf.x, Qs
+            return ekf.x, ekf.P, Qs, aol_car
 
-    return ekf.x, Qs, aol_car
+    return ekf.x, ekf.P, Qs, aol_car

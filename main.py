@@ -14,6 +14,7 @@ if __name__ == '__main__':
     sum_sensor = []
     sum_obs    = []
     sum_action = []
+    sum_P = []
 
     # Test the model
     for episode in range(1):  # Test for 5 episodes
@@ -29,11 +30,12 @@ if __name__ == '__main__':
             action, _ = model.predict(obs, deterministic=True)
             sum_action.append(action)
 
-            obs, reward, terminated, truncated, info, Qs = env.step(action)  # Updated step
+            obs, reward, terminated, truncated, info, Qs, P = env.step(action)  # Updated step
             done = terminated or truncated
 
             total_reward += reward
             sum_obs.append(obs)
+            sum_P.append(P)
             sum_sensor.append(len(Qs))
             steps += 1
 
@@ -49,6 +51,7 @@ if __name__ == '__main__':
     # Convert NumPy arrays to lists for JSON serialization
     data = {
         "sum_sensor": sum_sensor,
+        'sum_P': [P_n.tolist() for P_n in sum_P],
         "sum_obs": [obs.tolist() for obs in sum_obs],
         "sum_action": [action.tolist() for action in sum_action]
     }
