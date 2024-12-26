@@ -20,7 +20,7 @@ if __name__ == '__main__':
     for episode in range(1):  # Test for 5 episodes
         obs, _ = env.reset()  # Updated reset
 
-        sum_obs.append(obs)
+        #sum_obs.append(obs)
         #sum_sensor.append(len(Qs))
 
         done = False
