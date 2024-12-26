@@ -15,13 +15,13 @@ to reduce the bandwidth consumption and energy consumption of the whole system.
    Then, based on this information, it requires more sensors to send data to import the system's Age of Loop (Information freshness) and Variance (Accuracy).
    Finally, the server sends the control signal to update the  scheduling policy and take action at the end devices.
 3. At the server, an Extended Kalman Filter was used to estimate the status of the system from data gathered from SA.
-   Suppose that the sensors' information is not trustworthy and has difference accuracy.
+   Suppose that the sensors' information is not trustworthy and has different accuracy.
 4. To make the decision, Proximal policy optimization (PPO) was used to train the system and give the control decision.
 
 > The Mountain-Car-Continuous-v0 environment (gymnasium) was used to represent the system in which the car must choose the right velocity to reach its destination.
 You can gain more information on [Gymnasisum's webpage](https://gymnasium.farama.org/)
 
-> Temporarily, Resource Allocation consideration.
+> Temporarily, I skipped the Resource Allocation consideration.
 
 ### Algorithm
 The process that the server considers Age of Loop (Information freshness) and Variance (Accuracy) to make the new scheduling policy is described below:
