@@ -68,7 +68,7 @@ def plot_combined_chart(mean_position, reverb_uncertainty, DT_requirement, RL_re
     plt.tight_layout()
     plt.show()
 
-def plot_num_sensor(sum_obs, num_sensor):
+def plot_num_sensor(sum_obs, num_sensor, title):
     # Extract positions and velocities from sum_obs
     positions = [obs[0] for obs in sum_obs]
     velocities = [obs[1] for obs in sum_obs]
@@ -83,7 +83,7 @@ def plot_num_sensor(sum_obs, num_sensor):
     # Create a scatter plot with color representing the number of sensors
     plt.figure(figsize=(10, 6))
     scatter = plt.scatter(positions, velocities, c=num_sensor, cmap='viridis', s=100, edgecolor='k')
-    plt.title('Position vs Velocity with Number of Sensors as Color')
+    plt.title(f'Position vs Velocity with {title} as Color')
     plt.xlabel('Position')
     plt.ylabel('Velocity')
     plt.colorbar(scatter, label='Number of Sensors')
@@ -142,9 +142,9 @@ if __name__=='__main__':
 
     print(position_level_values)
 
-    #plot_num_sensor(sum_obs, num_sensor)
-    #plot_num_sensor(sum_obs, action)
-    #plot_num_sensor(sum_obs, P_0)
-    #plot_heatmap(1, 'Action')
+    plot_num_sensor(sum_obs, num_sensor, 'Sensor')
+    plot_num_sensor(sum_obs, action, 'Action')
+    plot_num_sensor(sum_obs, P_0, 'Variance')
+    plot_heatmap(1, 'Action')
     plot_combined_chart(position, P_0, [np.sqrt(0.01)] * len(num_sensor), position_level_values, num_sensor)
 
